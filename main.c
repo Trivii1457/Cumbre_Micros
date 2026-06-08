@@ -16,22 +16,23 @@
 #define SERVO_MIN   2000  // ~1 ms pulso (0 grados)
 #define SERVO_MID   3000  // ~1.5 ms pulso (90 grados)
 #define SERVO_MAX   4000  // ~2 ms pulso (180 grados)
-#define Pin_servo 0
+#define Pin_servo 6
 #define Motor_adelante 1
 #define Motor_Atras 2
-#define PWM 5
+#define PWM 7
 volatile int contador = 8;
-
+volatile int bandera_servo = 0;
 
 
 static void PaBajo(void){
 	if (contador > 0) contador--;
+	bandera_servo = 1;
 }
 
 
 void PWM_servo(void) {
 	
-	GPIO_PIN_MODE_PORTC(Pin_servo,OUTPUT);
+	GPIO_PIN_MODE_PORTB(Pin_servo,OUTPUT);
 	
 	hal_timer_config_t cfg = {
 		.mode      = HAL_TIMER_MODE_FAST_PWM,
@@ -46,7 +47,7 @@ void PWM_servo(void) {
 
 void PWM_Motor(void){
 	GPIO_PIN_MODE_PORTC(Motor_adelante,OUTPUT);
-	GPIO_PIN_MODE_PORTB(PWM, OUTPUT);
+	GPIO_PIN_MODE_PORTD(PWM, OUTPUT);
 
 	hal_timer_config_t cfg = {
 		.mode      = HAL_TIMER_MODE_FAST_PWM,
@@ -86,9 +87,22 @@ int main(void)
 	lcd_disable_blink();
 	lcd_set_cursor(0,0);
 	lcd_puts("Bienvenido a la torre de la muerte");
-    /* Replace with your application code */
+    
+	uint8_t Posicion = 0;
     while (1) 
-    {
+    {	
+		if(bandera_servo){
+			bandera_servo = 0;
+			
+			if(Posicion == 0){
+				HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_A, SERVO_MAX);
+				Posicion = 1;
+			}
+			else{
+				HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_A, SERVO_MIN);
+				Posicion = 0;
+			}
+			}
     }
 }
 
