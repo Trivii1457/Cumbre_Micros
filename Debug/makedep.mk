@@ -8,5 +8,7 @@ libs\interrupt.c
 
 libs\lcd.c
 
+libs\timer.c
+
 main.c
 

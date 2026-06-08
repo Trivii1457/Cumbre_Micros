@@ -143,6 +143,12 @@
     <Compile Include="libs\lcd.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="libs\timer.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="libs\timer.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
       <SubType>compile</SubType>
     </Compile>
