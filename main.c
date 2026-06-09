@@ -16,7 +16,7 @@
 #define SERVO_MIN   2000  // ~1 ms pulso (0 grados)
 #define SERVO_MID   3000  // ~1.5 ms pulso (90 grados)
 #define SERVO_MAX   4000  // ~2 ms pulso (180 grados)
-#define Pin_servo 6
+#define Pin_servo 5
 #define Motor_adelante 1
 #define Motor_Atras 2
 #define PWM 7
@@ -25,14 +25,18 @@ volatile int bandera_servo = 0;
 
 
 static void PaBajo(void){
-	if (contador > 0) contador--;
-	bandera_servo = 1;
+	if (contador > 0) {
+		contador--;
+	} else {
+		bandera_servo = 1;
+		contador = 8;
+	}
 }
 
 
 void PWM_servo(void) {
 	
-	GPIO_PIN_MODE_PORTB(Pin_servo,OUTPUT);
+	GPIO_PIN_MODE_PORTD(Pin_servo,OUTPUT);
 	
 	hal_timer_config_t cfg = {
 		.mode      = HAL_TIMER_MODE_FAST_PWM,
@@ -62,7 +66,7 @@ void PWM_Motor(void){
 }
 
 void Timer_contador(void) {
-	/* Timer0 CTC — genera IRQ periodica para decrementar contador */
+	/* Timer0 CTC ï¿½ genera IRQ periodica para decrementar contador */
 	hal_timer_config_t cfg = {
 		.mode      = HAL_TIMER_MODE_CTC,
 		.prescaler = HAL_TIMER_PRESCALER_1024,
