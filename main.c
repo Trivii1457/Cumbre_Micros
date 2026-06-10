@@ -9,12 +9,9 @@
 #define SERVO_MID   3000
 #define SERVO_MAX   4000
 #define Pin_servo 5
-#define MS_LATCH 1
-#define MS_CLK   2
-#define MS_DATA  3
+#define Motor_adelante 1
+#define Motor_Atras 2
 #define PWM 7
-#define M1_A 2
-#define M1_B 3
 #define Pin_buzzer 0
 #define Velocidad 120
 
@@ -22,6 +19,7 @@ volatile int contador_personas = 8;
 volatile int contador_vueltas = 0;
 volatile uint8_t tick_500ms = 0;
 volatile uint8_t bandera_conteo = 0;
+volatile uint8_t bandera_motor = 0;
 
 
 /*
@@ -70,25 +68,9 @@ void Servo_cerrar(void){
 	HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_A, SERVO_MAX);
 }
 
-static void Shift595(uint8_t data){
-	GPIO_WRITE_PORTC(MS_LATCH, LOW);
-	for (uint8_t i = 0; i < 8; i++){
-		GPIO_WRITE_PORTC(MS_CLK, LOW);
-		if (data & (1 << (7 - i))){
-			GPIO_WRITE_PORTC(MS_DATA, HIGH);
-		}
-		else{
-			GPIO_WRITE_PORTC(MS_DATA, LOW);
-		}
-		GPIO_WRITE_PORTC(MS_CLK, HIGH);
-	}
-	GPIO_WRITE_PORTC(MS_LATCH, HIGH);
-}
-
 void Motor_init(void){
-	GPIO_PIN_MODE_PORTC(MS_LATCH, OUTPUT);
-	GPIO_PIN_MODE_PORTC(MS_CLK, OUTPUT);
-	GPIO_PIN_MODE_PORTC(MS_DATA, OUTPUT);
+	GPIO_PIN_MODE_PORTC(Motor_adelante, OUTPUT);
+	GPIO_PIN_MODE_PORTC(Motor_Atras, OUTPUT);
 	GPIO_PIN_MODE_PORTD(PWM, OUTPUT);
 	hal_timer_config_t cfg = {
 		.mode      = HAL_TIMER_MODE_FAST_PWM,
@@ -99,21 +81,25 @@ void Motor_init(void){
 	HAL_Timer_PWM_Enable(HAL_TIMER2, HAL_TIMER_CH_A);
 	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, 0);
 	HAL_Timer_Start(HAL_TIMER2);
-	Shift595(0x00);
 }
 
 void PWM_Motor_Adelante(void){
-	Shift595(1 << M1_A);
+	if (!bandera_motor) return;
+	GPIO_WRITE_PORTC(Motor_adelante, HIGH);
+	GPIO_WRITE_PORTC(Motor_Atras, LOW);
 	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, Velocidad);
 }
 
 void PWM_Motor_Atras(void){
-	Shift595(1 << M1_B);
+	if (!bandera_motor) return;
+	GPIO_WRITE_PORTC(Motor_adelante, LOW);
+	GPIO_WRITE_PORTC(Motor_Atras, HIGH);
 	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, Velocidad);
 }
 
 void Detener_Motor(void){
-	Shift595(0x00);
+	GPIO_WRITE_PORTC(Motor_adelante, LOW);
+	GPIO_WRITE_PORTC(Motor_Atras, LOW);
 	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, 0);
 }
 
@@ -180,6 +166,7 @@ int main(void)
 	{
 		contador_personas = 8;
 		contador_vueltas = 0;
+		bandera_motor = 0;
 
 		Servo_abrir();
 		Detener_Motor();
@@ -198,6 +185,7 @@ int main(void)
 
 		Servo_cerrar();
 		Buzzer_sonar();
+		bandera_motor = 1;
 
 		while (contador_vueltas < 2){
 			PWM_Motor_Adelante();
