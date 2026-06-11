@@ -1,26 +1,27 @@
+#define F_CPU 16000000UL
 #include "libs/config.h"
 #include "libs/gpio.h"
 #include "libs/interrupt.h"
 #include "libs/lcd.h"
 #include "libs/timer.h"
-//#include <avr/wdt.h>
-#define F_CPU 16000000UL
+#include <avr/wdt.h>
 
-#define SERVO_MIN   2000
-#define SERVO_MID   3000
-#define SERVO_MAX   4000
-#define Pin_servo 5
-#define Motor_adelante 1
-#define Motor_Atras 2
-#define PWM 7
-#define Pin_buzzer 0
-#define Velocidad 120
 
-volatile int contador_personas = 8;
-volatile int contador_vueltas = 0;
-volatile uint8_t tick_500ms = 0;
-volatile uint8_t bandera_conteo = 0;
-volatile uint8_t bandera_motor = 0;
+#define SERVO_MIN      2000
+#define SERVO_MID      3000
+#define SERVO_MAX      4000
+#define Pin_servo      5        /* PD5 = OC1A (Timer1 CH_A) */
+#define Motor_adelante 1        /* PC1 */
+#define Motor_Atras    2        /* PC2 */
+#define Pin_PWM_Motor  4        /* PD4 = OC1B (Timer1 CH_B) */
+#define Pin_buzzer     0        /* PB0 */
+#define Velocidad      120
+
+volatile int     contador_personas = 8;
+volatile int     contador_vueltas  = 0;
+volatile uint8_t tick_500ms        = 0;
+volatile uint8_t bandera_conteo    = 0;
+volatile uint8_t bandera_motor     = 0;
 
 
 /*
@@ -40,14 +41,13 @@ static void PaBajo(void){
 }
 
 /*
-Reiniciar el juego 
+Reiniciar el juego
 @Trivi
 */
-/*
 static void Reiniciar(void){
 	wdt_enable(WDTO_15MS);
 	while (1){}
-}*/
+}
 
 void PWM_servo(void){
 	GPIO_PIN_MODE_PORTD(Pin_servo, OUTPUT);
@@ -72,37 +72,30 @@ void Servo_cerrar(void){
 
 void Motor_init(void){
 	GPIO_PIN_MODE_PORTC(Motor_adelante, OUTPUT);
-	GPIO_PIN_MODE_PORTC(Motor_Atras, OUTPUT);
-	GPIO_PIN_MODE_PORTD(PWM, OUTPUT);
-	hal_timer_config_t cfg = {
-		.mode      = HAL_TIMER_MODE_FAST_PWM,
-		.prescaler = HAL_TIMER_PRESCALER_8,
-		.top       = 255
-	};
-	HAL_Timer_Init(HAL_TIMER2, &cfg);
-	HAL_Timer_PWM_Enable(HAL_TIMER2, HAL_TIMER_CH_A);
-	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, 0);
-	HAL_Timer_Start(HAL_TIMER2);
+	GPIO_PIN_MODE_PORTC(Motor_Atras,    OUTPUT);
+	GPIO_PIN_MODE_PORTD(Pin_PWM_Motor,  OUTPUT);
+	HAL_Timer_PWM_Enable(HAL_TIMER1, HAL_TIMER_CH_B);
+	HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_B, 0);
 }
 
 void PWM_Motor_Adelante(void){
 	if (!bandera_motor) return;
 	GPIO_WRITE_PORTC(Motor_adelante, HIGH);
-	GPIO_WRITE_PORTC(Motor_Atras, LOW);
-	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, Velocidad);
+	GPIO_WRITE_PORTC(Motor_Atras,    LOW);
+	HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_B, Velocidad);
 }
 
 void PWM_Motor_Atras(void){
 	if (!bandera_motor) return;
 	GPIO_WRITE_PORTC(Motor_adelante, LOW);
-	GPIO_WRITE_PORTC(Motor_Atras, HIGH);
-	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, Velocidad);
+	GPIO_WRITE_PORTC(Motor_Atras,    HIGH);
+	HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_B, Velocidad);
 }
 
 void Detener_Motor(void){
 	GPIO_WRITE_PORTC(Motor_adelante, LOW);
-	GPIO_WRITE_PORTC(Motor_Atras, LOW);
-	HAL_Timer_PWM_SetRaw(HAL_TIMER2, HAL_TIMER_CH_A, 0);
+	GPIO_WRITE_PORTC(Motor_Atras,    LOW);
+	HAL_Timer_PWM_SetRaw(HAL_TIMER1, HAL_TIMER_CH_B, 0);
 }
 
 void Timer_contador(void){
@@ -116,7 +109,7 @@ void Timer_contador(void){
 	HAL_Timer_EnableIRQ(HAL_TIMER0, HAL_TIMER_IRQ_COMPARE_A);
 	HAL_Timer_Start(HAL_TIMER0);
 }
-/*
+
 void Boton_init(void){
 	GPIO_PIN_MODE_PORTD(2, INPUT);
 	GPIO_PULLUP_PORTD(2, HIGH);
@@ -124,7 +117,7 @@ void Boton_init(void){
 	HAL_EXT_INT_CLEAR_FLAG(HAL_EXT_INT0);
 	HAL_EXT_INT_ENABLE(HAL_EXT_INT0);
 }
-*/
+
 void Buzzer_init(void){
 	GPIO_PIN_MODE_PORTB(Pin_buzzer, OUTPUT);
 	GPIO_WRITE_PORTB(Pin_buzzer, LOW);
@@ -136,50 +129,51 @@ void Buzzer_sonar(void){
 	GPIO_WRITE_PORTB(Pin_buzzer, LOW);
 }
 
-
-
 void Actualizar_lcd(void){
-	lcd_set_cursor(2,1);
-	lcd_printf("Personas: %d ", contador_personas);
-	lcd_set_cursor(3,1);
-	lcd_printf("Vueltas: %d ", contador_vueltas);
+	lcd_set_cursor(2, 1);
+	lcd_printf("Personas: %-2d", contador_personas);
+	lcd_set_cursor(3, 1);
+	lcd_printf("Vueltas:  %-2d", contador_vueltas);
 }
 
 int main(void)
 {
-	/*MCUSR &= ~(1 << WDRF);
-	wdt_disable()*/
+	MCUSR &= ~(1 << WDRF);
+	wdt_disable();
 
 	PWM_servo();
 	Motor_init();
 	Buzzer_init();
-	//Boton_init();
+	Boton_init();
 	Timer_contador();
 	lcd_init();
+	_delay_ms(10);
 	lcd_clear();
+	_delay_ms(5);
 	lcd_disable_blink();
 	lcd_disable_cursor();
-	
 
 	HAL_IRQ_ENABLE();
 
 	while (1)
 	{
 		contador_personas = 8;
-		contador_vueltas = 0;
-		bandera_motor = 0;
+		contador_vueltas  = 0;
+		bandera_motor     = 0;
+		tick_500ms        = 0;
 
 		Servo_abrir();
 		Detener_Motor();
 
 		lcd_clear();
-		lcd_set_cursor(1,1);
-		lcd_puts("_MUERTE");
+		lcd_set_cursor(1, 1);
+		lcd_printf("_MUERTE");
+		Actualizar_lcd();
 
 		bandera_conteo = 1;
 		while (contador_personas > 0){
 			Actualizar_lcd();
-			_delay_ms(150);
+			_delay_ms(100);
 		}
 		bandera_conteo = 0;
 		Actualizar_lcd();
@@ -201,15 +195,9 @@ int main(void)
 		}
 
 		lcd_clear();
-
-		while (1){
-			lcd_set_cursor(2,1);
-			lcd_puts("Presiona REINICIO");
-			_delay_ms(500);
-			lcd_set_cursor(2,1);
-			lcd_puts("                 ");
-			_delay_ms(500);
-		}
+		lcd_set_cursor(1, 1);
+		lcd_printf("Presiona REINICIO");
+		while (1){}
 	}
 }
 
