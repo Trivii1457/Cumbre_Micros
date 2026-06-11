@@ -3,7 +3,8 @@
 #include "libs/interrupt.h"
 #include "libs/lcd.h"
 #include "libs/timer.h"
-#include <avr/wdt.h>
+//#include <avr/wdt.h>
+#define F_CPU 16000000UL
 
 #define SERVO_MIN   2000
 #define SERVO_MID   3000
@@ -42,10 +43,11 @@ static void PaBajo(void){
 Reiniciar el juego 
 @Trivi
 */
+/*
 static void Reiniciar(void){
 	wdt_enable(WDTO_15MS);
 	while (1){}
-}
+}*/
 
 void PWM_servo(void){
 	GPIO_PIN_MODE_PORTD(Pin_servo, OUTPUT);
@@ -114,7 +116,7 @@ void Timer_contador(void){
 	HAL_Timer_EnableIRQ(HAL_TIMER0, HAL_TIMER_IRQ_COMPARE_A);
 	HAL_Timer_Start(HAL_TIMER0);
 }
-
+/*
 void Boton_init(void){
 	GPIO_PIN_MODE_PORTD(2, INPUT);
 	GPIO_PULLUP_PORTD(2, HIGH);
@@ -122,7 +124,7 @@ void Boton_init(void){
 	HAL_EXT_INT_CLEAR_FLAG(HAL_EXT_INT0);
 	HAL_EXT_INT_ENABLE(HAL_EXT_INT0);
 }
-
+*/
 void Buzzer_init(void){
 	GPIO_PIN_MODE_PORTB(Pin_buzzer, OUTPUT);
 	GPIO_WRITE_PORTB(Pin_buzzer, LOW);
@@ -134,12 +136,7 @@ void Buzzer_sonar(void){
 	GPIO_WRITE_PORTB(Pin_buzzer, LOW);
 }
 
-void Menu_lcd(void){
-	lcd_init();
-	lcd_clear();
-	lcd_disable_blink();
-	lcd_disable_cursor();
-}
+
 
 void Actualizar_lcd(void){
 	lcd_set_cursor(2,1);
@@ -150,15 +147,19 @@ void Actualizar_lcd(void){
 
 int main(void)
 {
-	MCUSR &= ~(1 << WDRF);
-	wdt_disable();
+	/*MCUSR &= ~(1 << WDRF);
+	wdt_disable()*/
 
 	PWM_servo();
 	Motor_init();
 	Buzzer_init();
-	Boton_init();
+	//Boton_init();
 	Timer_contador();
-	Menu_lcd();
+	lcd_init();
+	lcd_clear();
+	lcd_disable_blink();
+	lcd_disable_cursor();
+	
 
 	HAL_IRQ_ENABLE();
 
